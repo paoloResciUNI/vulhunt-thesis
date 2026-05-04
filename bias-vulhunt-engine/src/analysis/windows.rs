@@ -16,7 +16,6 @@ use bias::pipeline::PipelineError;
 use bias::platform::common::flirt::FLIRTSymbolManager;
 use bias::platform::common::types::{TypeManager, TypeManagerError};
 use bias::platform::windows::WindowsBinary;
-use bias::platform::windows::analysis::WindowsBinaryAnalysis;
 use bias::platform::{PlatformAttributes, PlatformProvider};
 use bias::reporting::{CodeReportBuilder, CodeReportRenderer};
 

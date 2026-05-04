@@ -11,9 +11,6 @@ use bias::platform::common::types::FunctionTypeMapping;
 use bias::platform::windows::{
     WindowsBinary, WindowsComponentArch, WindowsComponentLinkedPaths, WindowsComponentName,
 };
-use bias::platform::windows::{
-    WindowsBinary, WindowsComponentArch, WindowsComponentLinkedPaths, WindowsComponentName,
-};
 use bias::platform::PlatformAttributes;
 
 use mlua::{UserDataMethods, Variadic};
