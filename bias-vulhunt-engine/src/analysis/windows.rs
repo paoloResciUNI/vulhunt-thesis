@@ -15,8 +15,8 @@ use bias::pipeline::types::{
 use bias::pipeline::PipelineError;
 use bias::platform::common::flirt::FLIRTSymbolManager;
 use bias::platform::common::types::{TypeManager, TypeManagerError};
+use bias::platform::windows::analysis::WindowsBinaryAnalysis;
 use bias::platform::windows::WindowsBinary;
-use bias::platform::windows::WindowsBinaryAnalysis;
 use bias::platform::{PlatformAttributes, PlatformProvider};
 use bias::reporting::{CodeReportBuilder, CodeReportRenderer};
 
@@ -288,8 +288,12 @@ impl AnalysisGroupAnalyserForCode for VulHuntWindowsAnalyser {
     fn should_analyse(&self, platform: &PlatformAttributes) -> bool {
         self.checkers.iter().any(|checker| {
             checker.platform() == WindowsBinary::NAME
-                && WindowsBinary::should_check(checker.architecture(), checker.conditions(), platform)
-                    .unwrap_or(false)
+                && WindowsBinary::should_check(
+                    checker.architecture(),
+                    checker.conditions(),
+                    platform,
+                )
+                .unwrap_or(false)
         })
     }
 

@@ -6,7 +6,6 @@ use std::sync::Arc;
 
 use bias::component::ComponentLoader;
 use bias::loader::BA2LoaderConfig;
-use bias::loader::meta::windows;
 use bias::pipeline::analysis::AnalysisGroupForCode;
 use bias::pipeline::types::property::FINDING_KNOWN_VULNERABILITY_PATCH;
 use bias::pipeline::{Pipeline, Source};
@@ -198,20 +197,23 @@ pub async fn run(opts: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
         },
     )?);
 
-    let windows_binaries = AnalysisGroupForCode::new(bias_vulhunt_engine::analysis::windows::VulHuntWindowsAnalyser::new_with(
-        rules,
-        bias_vulhunt_engine::analysis::windows::WindowsBinaryAnalysis::new(data)?,
-        if let Some(modules) = &modules {
-            bias_vulhunt_engine::analysis::windows::VulHuntWindowsAnalyserConfig::new().with_module_directory(modules)
-        } else {
-            bias_vulhunt_engine::analysis::windows::VulHuntWindowsAnalyserConfig::new()
-        },
-    )?);
+    let windows_binaries = AnalysisGroupForCode::new(
+        bias_vulhunt_engine::analysis::windows::VulHuntWindowsAnalyser::new_with(
+            rules,
+            bias::platform::windows::analysis::WindowsBinaryAnalysis::new(Some(data))?,
+            if let Some(modules) = &modules {
+                bias_vulhunt_engine::analysis::windows::VulHuntWindowsAnalyserConfig::new()
+                    .with_module_directory(modules)
+            } else {
+                bias_vulhunt_engine::analysis::windows::VulHuntWindowsAnalyserConfig::new()
+            },
+        )?,
+    );
 
     pipeline.register_group_for_code::<EFIModule>(efi_modules)?;
     pipeline.register_group_for_code::<EFIStandalone>(efi_standalone)?;
     pipeline.register_group_for_code::<PosixBinary>(posix_binaries)?;
-    pipeline.register_group_for_code::<WindowsBinary>(windows_binaries)?; 
+    pipeline.register_group_for_code::<WindowsBinary>(windows_binaries)?;
 
     let source = loader.source_with(input, config)?;
 

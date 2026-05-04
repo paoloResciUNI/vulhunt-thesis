@@ -4,7 +4,7 @@ use bias_core::analyses::strings::StringsXRefDB;
 use bias_core::arch::aarch64::ARCH_AARCH64;
 use bias_core::prelude::*;
 
-use crate::types::property::METADATA_SYMBOLS_PE;
+use crate::types::property::METADATA_SYMBOLS_ELF;
 use crate::types::Property;
 
 use thiserror::Error;
@@ -41,11 +41,11 @@ pub enum WindowsBinaryAnalysisError {
 
 impl WindowsBinaryAnalysis {
     pub fn new(
-        platform_data_builder: &PlatformDataProviderBuilder,
+        platform_data_builder: Option<&PlatformDataProviderBuilder>,
     ) -> Result<Self, WindowsBinaryAnalysisError> {
-        let platform_data_provider = platform_data_builder.build("windows")?;
+        let platform_data_provider = platform_data_builder.unwrap().build("posix")?;
 
-        let types = platform_data_provider.resolve("/types/windows.h")?;
+        let types = platform_data_provider.resolve("/types/libc.h")?;
         tracing::trace!("loading type database from {}", types.display());
         let typedb = TypeInfoDB::from_file(types)?;
 
@@ -56,7 +56,7 @@ impl WindowsBinaryAnalysis {
 
         let config = ProjectConfig {
             use_function_specifications: fspecs.specifications().to_vec().into(),
-            platform: Some("windows"),
+            platform: Some("posix"),
             ..Default::default()
         };
 
@@ -91,10 +91,10 @@ impl WindowsBinaryAnalysis {
     ) -> Result<Option<Property>, PipelineError> {
         Ok(Some(Property::new_metadata(
             component.id(),
-            METADATA_SYMBOLS_PE,
+            METADATA_SYMBOLS_ELF,
             serde_json::json!({
                 "symbols": {
-                    "pe": {
+                    "elf": {
                         "used": project.load_symbols(component).is_ok(),
                     }
                 }

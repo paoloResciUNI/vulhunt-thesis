@@ -17,6 +17,8 @@ use super::{
     PlatformComponentBinaryLoader, PlatformComponentLoader, PlatformProvider,
 };
 
+pub mod analysis;
+
 pub use super::common::{
     ComponentArch as WindowsComponentArch,
     ComponentBinaryLoaderMetadata as WindowsBinaryLoaderMetadata,
