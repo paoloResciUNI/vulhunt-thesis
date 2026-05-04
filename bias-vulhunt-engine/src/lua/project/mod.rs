@@ -41,6 +41,7 @@ pub use decompiler::{DynamicDecompilerContext, DynamicResolver};
 
 pub mod efi;
 pub mod posix;
+pub mod windows;
 
 mod attrs;
 

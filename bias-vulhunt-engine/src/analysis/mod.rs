@@ -20,10 +20,11 @@ use bias_core::kb::function::Function;
 use bias_core::kb::{Lazy, Uuid};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use serde_with::serde_as;
+use serde_with::serde_as;efi
 
 pub mod efi;
 pub mod posix;
+pub mod windows;
 
 pub static DECOMPILER_TIMEOUT: Lazy<Duration> = Lazy::new(|| {
     let timeout = env::var("BIAS_DECOMPILER_TIMEOUT")
