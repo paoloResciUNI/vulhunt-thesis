@@ -20,7 +20,7 @@ use bias_core::kb::function::Function;
 use bias_core::kb::{Lazy, Uuid};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use serde_with::serde_as;efi
+use serde_with::serde_as;
 
 pub mod efi;
 pub mod posix;
