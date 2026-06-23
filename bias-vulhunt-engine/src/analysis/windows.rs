@@ -107,6 +107,7 @@ impl VulHuntWindowsAnalyser {
 
 impl AnalysisGroupAnalyserForCode for VulHuntWindowsAnalyser {
     fn decompiler_configuration(&self) -> Cow<'_, DecompilerConfig> {
+        println!("DEBUG: enter the decompiler configuration in bias-vulhunt-engine/src/analysis/windows.rs,\nline 110!!");
         Cow::Owned(DecompilerConfig::default())
     }
 
@@ -161,7 +162,7 @@ impl AnalysisGroupAnalyserForCode for VulHuntWindowsAnalyser {
                 let anno = builder
                     .decompile_with(loc, annots, *DECOMPILER_TIMEOUT)
                     .map_err(PipelineError::analysis)?;
-
+                println!("DEBUG: line 165");
                 if let CheckEvidenceLocation::Address(addr) = loc {
                     let (index, offset) = *listings.entry(addr).or_insert_with(|| {
                         let index = ebuilder.add_artefact(Artefact::new_code_listing(

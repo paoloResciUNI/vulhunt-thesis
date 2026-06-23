@@ -1,10 +1,13 @@
 use bias_core::analyses::blocks::CodeBlockBounds;
 use bias_core::analyses::dataflow::reaching_constants::ReachingConsts;
 use bias_core::analyses::strings::StringsXRefDB;
+use bias_core::analyses::types::TypesForImports;
 use bias_core::arch::aarch64::ARCH_AARCH64;
+use bias_core::windows::non_returning::PropagatedWindowsNonReturningExternals;
 use bias_core::prelude::*;
+use bias_core::windows::test::TestAnalysis;
 
-use crate::types::property::METADATA_SYMBOLS_ELF;
+use crate::types::property::METADATA_SYMBOLS_PDB;
 use crate::types::Property;
 
 use thiserror::Error;
@@ -41,9 +44,9 @@ pub enum WindowsBinaryAnalysisError {
 
 impl WindowsBinaryAnalysis {
     pub fn new(
-        platform_data_builder: Option<&PlatformDataProviderBuilder>,
+        platform_data_builder: &PlatformDataProviderBuilder,
     ) -> Result<Self, WindowsBinaryAnalysisError> {
-        let platform_data_provider = platform_data_builder.unwrap().build("posix")?;
+        let platform_data_provider = platform_data_builder.build("windows")?;
 
         let types = platform_data_provider.resolve("/types/libc.h")?;
         tracing::trace!("loading type database from {}", types.display());
@@ -56,7 +59,7 @@ impl WindowsBinaryAnalysis {
 
         let config = ProjectConfig {
             use_function_specifications: fspecs.specifications().to_vec().into(),
-            platform: Some("posix"),
+            platform: Some("windows"),
             ..Default::default()
         };
 
@@ -91,10 +94,10 @@ impl WindowsBinaryAnalysis {
     ) -> Result<Option<Property>, PipelineError> {
         Ok(Some(Property::new_metadata(
             component.id(),
-            METADATA_SYMBOLS_ELF,
+            METADATA_SYMBOLS_PDB,
             serde_json::json!({
                 "symbols": {
-                    "elf": {
+                    "pe": {
                         "used": project.load_symbols(component).is_ok(),
                     }
                 }
@@ -102,7 +105,7 @@ impl WindowsBinaryAnalysis {
         )))
     }
 
-    pub fn register_analyses(
+     pub fn register_analyses(
         &self,
         component: &mut LoadedBinaryComponent,
         project: &mut Project,
@@ -118,6 +121,15 @@ impl WindowsBinaryAnalysis {
         if !project.injections().has_stubs() {
             project.register_fixups()?;
         }
+
+        let propagated_non_returning = PropagatedWindowsNonReturningExternals::new();
+        project.analyses_mut().register(propagated_non_returning)?;
+
+        let types_for_imports = TypesForImports::new();
+        project.analyses_mut().register(types_for_imports)?;
+
+        let test_analysis = TestAnalysis::new();
+        project.analyses_mut().register(test_analysis)?;
 
         let block_bounds = CodeBlockBounds::new();
         project.analyses_mut().register(block_bounds)?;

@@ -1,5 +1,6 @@
 use std::borrow::Borrow;
 use std::path::Path;
+use std::cmp::PartialEq;
 
 use fugue::ir::compiler::CallFixup;
 use fugue::ir::{Address, Translator};
@@ -374,6 +375,14 @@ impl Project {
     }
 
     pub fn functions(&self) -> &FunctionTable {
+       let _ = &self.ftable.for_each(|addr, f| {
+        println!(
+            "fn address {} id={:?} name function ={:?}",
+            addr,
+            f.id(),          // FunctionId (Debug)
+            f.name(),        // Option<Ustr>
+            );
+        });
         &self.ftable
     }
 
@@ -388,7 +397,10 @@ impl Project {
     }
 
     pub fn function_at(&self, address: impl Into<Address>) -> Option<&Function> {
-        self.functions().get_point(address.into())
+        println!("Arrived in mod.rs!!");
+        let addr = address.into();
+        println!("Here the address: {}", addr);
+        self.functions().get_point(addr)
     }
 
     pub fn function_summaries(&self) -> &FunctionSummaryTable {

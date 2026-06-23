@@ -1,5 +1,4 @@
 use bias_core::analyses::strings::StringsXRefDB;
-use bias_core::loader::elf::ELFExternalSymbolsRef;
 use bias_core::windows::non_returning::PropagatedWindowsNonReturningExternals;
 
 use bias_core::prelude::*;
@@ -81,7 +80,10 @@ impl<'a> PlatformApi<'a> for WindowsBinary {
                 .unwrap_or(project.type_db()),
         );
 
+        //decompiler.add_function_symbol("IoCreateDevice",  Address::from_value(0x514a as u64)).ok();
+
         for f in project.functions().values() {
+            println!("Found function at address {}", f.address());
             let Some(name) = symbol_mapping
                 .and_then(|syms| syms.function_mapping().get(&f.id()).copied())
                 .or_else(|| f.name())
@@ -105,12 +107,6 @@ impl<'a> PlatformApi<'a> for WindowsBinary {
                 decompiler
                     .apply_call_fixup_to_function(fixup.name(), f)
                     .ok();
-            }
-        }
-
-        if let Some(externs) = attributes.get_attr::<ELFExternalSymbolsRef>() {
-            for (addr, sym) in externs.iter() {
-                decompiler.add_extern(sym, addr).ok();
             }
         }
 
@@ -160,7 +156,10 @@ impl<'a> PlatformApi<'a> for WindowsBinary {
     ) -> Result<(Decompiler<'a>, DynamicDecompilerContext), CheckerError> {
         let resolver = DynamicResolver::new(project, DefaultDecompilerResolver::default());
         let context = resolver.context();
-
+        
+        println!(
+            "DEBUG: we arrived here in bias-vulhunt-engine/src/lua/project/windows.rs, line 161!!\nSo the decompile was a success!!"
+        );
         let mut decompiler = Decompiler::new_with_config(
             project,
             type_mapping
@@ -172,7 +171,10 @@ impl<'a> PlatformApi<'a> for WindowsBinary {
         )
         .map_err(CheckerError::decompiler)?;
 
+
         for f in project.functions().values() {
+            println!("DEBUG: we arrived here in bias-vulhunt-engine/src/lua/project/windows.rs, line 173!!");
+
             let Some(name) = symbol_mapping
                 .and_then(|syms| syms.function_mapping().get(&f.id()).copied())
                 .or_else(|| f.name())
@@ -196,12 +198,6 @@ impl<'a> PlatformApi<'a> for WindowsBinary {
                 decompiler
                     .apply_call_fixup_to_function(fixup.name(), f)
                     .ok();
-            }
-        }
-
-        if let Some(externs) = attributes.get_attr::<ELFExternalSymbolsRef>() {
-            for (addr, sym) in externs.iter() {
-                decompiler.add_extern(sym, addr).ok();
             }
         }
 

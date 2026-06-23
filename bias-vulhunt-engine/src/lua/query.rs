@@ -1,3 +1,4 @@
+use std::fmt::Pointer;
 use std::ops::Deref;
 
 use bias_core::analyses::blocks::CodeBlockBounds;
@@ -192,6 +193,7 @@ impl TryFrom<FunctionQuery> for FunctionQueryTarget {
             FunctionQuery::Fuzzy(fuzzy) => Ok(FunctionQueryTarget::Fuzzy(fuzzy)),
             FunctionQuery::WithOptions(_) => Err("options not allowed"),
         }
+
     }
 }
 
@@ -228,6 +230,7 @@ impl FunctionQueryTarget {
     }
 
     pub fn target_by_address(addr: Address, project: &Project) -> Option<&Function> {
+        print!("Address of the funtion: {} \n", addr);    
         project.function_at(addr)
     }
 
@@ -236,6 +239,7 @@ impl FunctionQueryTarget {
         project: &'a Project,
         symbols: impl Into<Option<&'a FunctionSymbolMapping>>,
     ) -> Option<&'a Function> {
+        print!("Name of the funtion: {} \n", name);
         let Some(name) = Ustr::from_existing(&name) else {
             return None;
         };
@@ -266,13 +270,15 @@ impl FunctionQueryTarget {
                 //
                 project.function_named(to).or_else(|| {
                     symbols
-                        .and_then(|s| s.symbol_mapping().get(&to))
-                        .copied()
-                        .map(|fid| &project.functions()[fid])
+                    .and_then(|s| s.symbol_mapping().get(&to))
+                    .copied()
+                    .map(|fid| &project.functions()[fid])
                 })
+                
             })
         };
-
+        
+        print!("Name of the funtion: {}\n", name);
         let exact = named_function(name);
         let alternate = if let Some(stripped) = name.strip_prefix("imp.") {
             named_function(stripped)

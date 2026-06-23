@@ -4,7 +4,8 @@ use std::path::{Path, PathBuf};
 
 use fugue::bytes::Endian;
 use fugue::ir::error::Error as LanguageDBError;
-use fugue::ir::{Address, LanguageDB};
+use fugue::ir::{Address, IntoAddress, LanguageDB};
+use goblin::mach::segment::Section;
 use goblin::pe::header::{COFF_MACHINE_X86, COFF_MACHINE_X86_64};
 use goblin::pe::section_table::{IMAGE_SCN_CNT_CODE, IMAGE_SCN_MEM_EXECUTE, IMAGE_SCN_MEM_WRITE};
 use goblin::pe::utils::PESectionTable;
@@ -16,8 +17,15 @@ use super::{
     LoadedBinary, Loader, LoaderBlock, LoaderBytes, LoaderContainer, LoaderFunction, LoaderImport,
     LoaderRegion,
 };
+use crate::analyses::strings::StringsXRefDB;
 use crate::arch::x86::X86;
+use crate::eval::traits::VarOps;
 use crate::lifter::{Lifter, LifterBuilder, LifterBuilderError};
+
+use std::sync::OnceLock;
+
+pub static IMPORT_FUNCS: OnceLock<Vec<(Address, String)>> = OnceLock::new();
+
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -46,7 +54,7 @@ impl<'a> PELoader<'a> {
         Self {
             ldb: ldb.into(),
             bytes: None,
-            convention: "efi".into(), // TODO: change to windows?
+            convention: "windows".into(), // TODO: change to windows?
         }
     }
 
@@ -124,6 +132,8 @@ impl<'a> Loader for &'a mut PELoader<'_> {
     where
         P: AsRef<Path>,
     {
+        println!("DEBUG: Loading PE file from {}\n", path.as_ref().display());
+
         let path = path.as_ref();
         let f = File::open(path).map_err(Error::LoaderIO)?;
         self.bytes = Some(unsafe { Mmap::map(&f) }.map_err(Error::LoaderIO)?);
@@ -160,7 +170,15 @@ impl<'a> LoadedBinary for LoadedPE<'a> {
     where
         F: FnMut(&LoaderRegion<'b>),
     {
+        let mut import_address: Vec<(Address, String)> = Vec::new();
         for section in self.pe.sections.iter() {
+            
+            // Taking all the imports from the .idata section with goblin parser
+            for import in self.pe.imports.iter() {
+                import_address.push((self.image_base+import.offset, import.name.to_string()));
+            }
+            
+
             if section.virtual_size() == 0 {
                 continue;
             }
@@ -223,6 +241,38 @@ impl<'a> LoadedBinary for LoadedPE<'a> {
 
             f(&lrgn)
         }
+        
+        
+        let kernel_base = Address::from_value(0x8000000000 as u64);
+        // Let's just simulate our beloved kernel region
+        
+        let mut bytes = Vec::new();
+
+        import_address.sort();
+        import_address.dedup();
+        
+        println!("Numero di funzioni importate, {}", import_address.len());
+        for (address, name) in &import_address {
+            println!("Nome funzione: {}\nAddress funzione: {}\n", name, address);
+            bytes.extend_from_slice((0x31c0_u16).to_be_bytes().as_ref()); // XOR EAX, EAX
+            bytes.extend_from_slice((0xc3_u8).to_be_bytes().as_ref()); // RET
+        }
+        
+        IMPORT_FUNCS.set(import_address).unwrap(); // exorting the address - name vector
+        
+        let mut lrgn = LoaderRegion::default();
+        lrgn.name = Some(Cow::Borrowed("unnamed"));
+        lrgn.code = true;
+        lrgn.read_only = true;
+        lrgn.bounds = kernel_base..(kernel_base + (bytes.len() as u64));
+        lrgn.endian = Endian::Little;
+        lrgn.bytes = Cow::Owned(bytes);
+
+        println!(
+            "Creating fake region for kernel imports of size {}!",
+            (lrgn.bounds.end - lrgn.bounds.start)
+        );
+        f(&lrgn);
     }
 
     fn for_each_block<F>(&self, _f: F)
@@ -246,7 +296,9 @@ impl<'a> LoadedBinary for LoadedPE<'a> {
     where
         F: FnMut(&LoaderImport<'b>),
     {
+        println!("DEBUG: checking if the for is triggered, number of possible iterations: {}\n", self.pe.imports.len());
         self.pe.imports.iter().for_each(|import| {
+            println!("DEBUG: I think we're iterating throught some imported functions, like {}\n", (import.name));
             f(&LoaderImport {
                 name: Cow::Borrowed(import.name.as_ref()),
                 address: Some(Address::from(

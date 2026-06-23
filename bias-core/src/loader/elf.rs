@@ -291,6 +291,7 @@ impl ELFExternalSymbols {
     ) {
         let addr = addr.into();
         let sym = symbol.into();
+        println!("Loaded ELF external symbol {} for address {}", sym.unwrap(), addr);
 
         self.indices.insert(index, addr);
 

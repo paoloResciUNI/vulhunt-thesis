@@ -236,6 +236,7 @@ impl<'a> LoaderContainer<'a> {
         match self.inner {
             R::PE(ref pe) => {
                 pe.imports.iter().for_each(|import| {
+                    println!("Found that import: {}", import.name);
                     f(&LoaderImport {
                         name: import.name.as_ref().into(),
                         address: Some(

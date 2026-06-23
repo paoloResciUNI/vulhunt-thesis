@@ -129,7 +129,7 @@ pub fn command() -> Command {
 }
 
 pub async fn run(opts: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
-    let input = opts.get_one::<PathBuf>("INPUT").unwrap();
+    let input = opts.get_one::<PathBuf>("INPUT").unwrap(); // Path of the bin file
     let output = opts.get_one::<PathBuf>("OUTPUT").unwrap();
     let loader = opts
         .get_one::<VulHuntLoader>("loader")
@@ -200,7 +200,7 @@ pub async fn run(opts: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
     let windows_binaries = AnalysisGroupForCode::new(
         bias_vulhunt_engine::analysis::windows::VulHuntWindowsAnalyser::new_with(
             rules,
-            bias::platform::windows::analysis::WindowsBinaryAnalysis::new(Some(data))?,
+            bias::platform::windows::analysis::WindowsBinaryAnalysis::new(data)?,
             if let Some(modules) = &modules {
                 bias_vulhunt_engine::analysis::windows::VulHuntWindowsAnalyserConfig::new()
                     .with_module_directory(modules)

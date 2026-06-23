@@ -15,6 +15,7 @@ use crate::platform::efi::EFIModule;
 use crate::platform::efi::EFIStandalone;
 use crate::platform::posix::analysis::PosixBinaryAnalysis;
 use crate::platform::posix::PosixBinary;
+use crate::platform::windows::analysis::WindowsBinaryAnalysis;
 use crate::platform::windows::WindowsBinary;
 use crate::platform::PlatformProvider;
 
@@ -52,7 +53,13 @@ impl DefaultPlatformAnalyses {
                     ),
                 );
 
-                m.insert(WindowsBinary::NAME.into(), Box::new(CommonAnalysisDefaults));
+                m.insert(
+                    WindowsBinary::NAME.into(),
+                    Box::new(
+                        WindowsBinaryAnalysis::new(platform_data_builder)
+                            .map_err(PipelineError::analysis)?,
+                    ),
+                );                
 
                 m
             },
@@ -172,5 +179,23 @@ impl DefaultPlatformAnalysis for PosixBinaryAnalysis {
         project: &mut Project,
     ) -> Result<(), PipelineError> {
         PosixBinaryAnalysis::register_analyses(self, component, project)
+    }
+}
+
+impl DefaultPlatformAnalysis for WindowsBinaryAnalysis {
+    fn apply_symbols(
+        &self,
+        component: &mut LoadedBinaryComponent,
+        project: &mut Project,
+    ) -> Result<Option<Property>, PipelineError> {
+        WindowsBinaryAnalysis::apply_symbols(self, component, project)
+    }
+
+    fn register_analyses(
+        &self,
+        component: &mut LoadedBinaryComponent,
+        project: &mut Project,
+    ) -> Result<(), PipelineError> {
+        WindowsBinaryAnalysis::register_analyses(self, component, project)
     }
 }

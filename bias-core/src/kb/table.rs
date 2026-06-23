@@ -1,4 +1,5 @@
 use std::borrow::Borrow;
+use std::fmt::Pointer;
 use std::hash::Hash;
 use std::marker::PhantomData;
 use std::mem::{self, transmute, transmute_copy, MaybeUninit};
@@ -6,6 +7,8 @@ use std::ops::{Index, IndexMut};
 use std::ptr;
 
 use ahash::AHashMap;
+use fugue::fspec::common::GroupKind::Any;
+use gazebo::variants::VariantName;
 use slab::Slab;
 
 use crate::kb::id::{Identifiable, MKey};
@@ -293,9 +296,12 @@ where
     where
         P: Borrow<K>,
     {
+        let key = point.borrow();
+        let found = self.points.get(key);
+        println!("get_point: found = {:?}", found.variant_name());
         self.points
-            .get(point.borrow())
-            .and_then(|id| self.values.get(*id))
+        .get(point.borrow())
+        .and_then(|id| self.values.get(*id))
     }
 
     pub fn get_mut(&mut self, id: V::Key) -> Option<&mut V> {

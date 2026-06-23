@@ -87,6 +87,7 @@ impl<'a> PlatformApi<'a> for PosixBinary {
             else {
                 continue;
             };
+            println!("Name {} mapped to function {}", name, f.address());
 
             if let Some(t) = type_mapping.as_ref().and_then(|tm| tm.type_by_id(f.id())) {
                 decompiler

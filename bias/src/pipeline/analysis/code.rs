@@ -61,6 +61,7 @@ pub trait AnalysisGroupAnalyserForCode: Send + Sync + 'static {
 
     #[allow(unused)]
     fn decompiler_configuration(&self) -> Cow<'_, DecompilerConfig> {
+        println!("DEBUG: we arrived here in bias/src/pipeline/analysis/code.rs, line 64!!");
         Cow::Owned(DecompilerConfig::default())
     }
 
