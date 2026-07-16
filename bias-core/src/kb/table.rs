@@ -295,10 +295,7 @@ where
     pub fn get_point<P>(&self, point: P) -> Option<&V>
     where
         P: Borrow<K>,
-    {
-        let key = point.borrow();
-        let found = self.points.get(key);
-        println!("get_point: found = {:?}", found.variant_name());
+    {   
         self.points
         .get(point.borrow())
         .and_then(|id| self.values.get(*id))

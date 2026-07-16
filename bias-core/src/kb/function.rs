@@ -1217,6 +1217,11 @@ impl Function {
 
     pub fn callers(&self, icfg: &ICFG, blocks: &CodeBlockTable) -> AHashSet<FunctionId> {
         let mut ids = AHashSet::default();
+        let name = &self.name().as_ref().map(Ustr::as_str);
+        match name {  // Never triggered 
+            Some(_text) => println!("Name: {}", name.unwrap()),   
+            None => println!("No value"),
+        }
         if let Some(blk) = blocks.get(self.entry()) {
             let node = blk.node();
             ids.extend(
@@ -1426,6 +1431,7 @@ impl FunctionTable {
     where
         S: FunctionEntryStrategy,
     {
+        println!("Function in the function table implementation:\nId  {}\nName {:?}", d, s.name);
         // Find function containing overlap and merge with current
         let ofcn = &mut self[d];
 
@@ -1438,6 +1444,8 @@ impl FunctionTable {
 
         // Current entry
         let ofentry = ofcn.address();
+
+        println!("nfentry = {:?}\nofentry = {:?}", nfentry, ofentry);
 
         // Update start if changed (also need to update point mapping for d)
         if nfentry != ofentry {

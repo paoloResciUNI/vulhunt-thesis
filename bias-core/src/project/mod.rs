@@ -375,14 +375,14 @@ impl Project {
     }
 
     pub fn functions(&self) -> &FunctionTable {
-       let _ = &self.ftable.for_each(|addr, f| {
-        println!(
-            "fn address {} id={:?} name function ={:?}",
-            addr,
-            f.id(),          // FunctionId (Debug)
-            f.name(),        // Option<Ustr>
-            );
-        });
+    //    let _ = &self.ftable.for_each(|addr, f| {
+    //     println!(
+    //         "fn address {} id={:?} name function ={:?}",
+    //         addr,
+    //         f.id(),          // FunctionId (Debug)
+    //         f.name(),        // Option<Ustr>
+    //         );
+    //     });
         &self.ftable
     }
 
@@ -397,7 +397,7 @@ impl Project {
     }
 
     pub fn function_at(&self, address: impl Into<Address>) -> Option<&Function> {
-        println!("Arrived in mod.rs!!");
+        // println!("Arrived in mod.rs!!");
         let addr = address.into();
         println!("Here the address: {}", addr);
         self.functions().get_point(addr)
@@ -412,6 +412,9 @@ impl Project {
     }
 
     pub fn symbols(&self) -> &SymbolTable {
+        for s in self.symtab.iter() {
+            println!("Sybol from the binary: {}", s.0); // function only with ELF binary (function called in elf.rs)
+        }
         &self.symtab
     }
 

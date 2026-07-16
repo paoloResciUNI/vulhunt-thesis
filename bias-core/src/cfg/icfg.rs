@@ -341,6 +341,8 @@ impl ICFG {
         let context = context.into();
         let mut seen = FixedBitSet::with_capacity(context.ftable.len());
 
+        println!("Function Control Graph FunctionId: {}", fcn);
+
         let fcn = &context.ftable[fcn];
         let mut work = vec![fcn];
 

@@ -29,9 +29,11 @@ use crate::kb::{ustr, uuid, Lazy, Uuid};
 
 
 
-use crate::bias_core::loader::pe::IMPORT_FUNCS;
+use crate::bias_core::loader::pe::IMPORT_FUNCS;  // importing the <address - name> vector
 
 
+use crate::loader::LoadedBinary;
+use crate::loader::pe::LoadedPE;
 use crate::prelude::FunctionId;
 use crate::project::analysis::{Analysis, AnalysisError, AnalysisInfo, AnalysisSchedule};
 use crate::region::Region;
@@ -63,7 +65,7 @@ impl Analysis for TestAnalysis {
 
     fn analyse(&mut self, project: &mut Project) -> Result<(), AnalysisError> {
         println!("Test analysis");  
-
+   
         let imported = IMPORT_FUNCS.get().unwrap();
 
         let mut new_address: u64 =  0x8000000000;

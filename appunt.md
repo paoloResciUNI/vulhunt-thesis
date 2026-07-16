@@ -36,12 +36,15 @@ file di windows
 Le funzioni importate possono essere viste dal tool tramite una particolare libreria rust chiamata goblin che parsa i file binari.
 
 
-
-
 ---
 Logica che si occupa di gestire gli `scope:calls`:
 - [`bias-vulhunt-engine/src/lua/query.rs`](bias-vulhunt-engine/src/lua/query.rs)
 - [`bias-vulhunt-engine/src/lua/scope.rs`](bias-vulhunt-engine/src/lua/scope.rs)
 
-Pare che le funzioni vengano riconosciute da vulhunt ma questo essere risonosciute non sia persistente all'interno del programma. Pare ci sia una mappa che tiene traccia delle funzioni presenti e del loro address, ma pare anche che tale mappa venga sovrascritta durante il controllo. Queste informazioni sono relative al fatto che nella funzione `get_points` del file [`/home/prescigno/vulhunt-thesis/bias-core/src/kb/table.rs`](/home/prescigno/vulhunt-thesis/bias-core/src/kb/table.rs)
+Pare che le funzioni vengano riconosciute da vulhunt ma questo essere risonosciute non sia persistente all'interno del programma. Pare ci sia una mappa che tiene traccia delle funzioni presenti e del loro address, ma pare anche che tale mappa venga sovrascritta durante il controllo. Queste informazioni sono relative al fatto che nella funzione `get_points` del file [`/home/prescigno/vulhunt-thesis/bias-core/src/kb/table.rs`](bias-core/src/kb/table.rs)
 
+Le strutture dati che gestiscono questa tabella sono complesse: 
+- Partendo da `MPointTable`, è una struttura che associa una hash map a una `MTable`.
+- `MTable` è composto da un `Slab` (una sruttura dati che pare fare da preallocatore della memoria per un singolo tipo di dato).
+
+La "perdita" delle funzioni importate avviane anche nei binari posix. Potrebbe non essere quello il problema dei binari a questo punto il problema potrebbe essere legato alla gestione dei binari windows. 
