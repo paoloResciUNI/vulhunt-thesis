@@ -17,15 +17,19 @@ use super::{
     LoadedBinary, Loader, LoaderBlock, LoaderBytes, LoaderContainer, LoaderFunction, LoaderImport,
     LoaderRegion,
 };
+use crate::eval::Configuration;
+use crate::{Project, ProjectConfig};
 use crate::analyses::strings::StringsXRefDB;
 use crate::arch::x86::X86;
+use crate::cfg::{ICFG, ICFGBuilder};
 use crate::eval::traits::VarOps;
 use crate::lifter::{Lifter, LifterBuilder, LifterBuilderError};
 
 use std::sync::OnceLock;
 
 pub static IMPORT_FUNCS: OnceLock<Vec<(Address, String)>> = OnceLock::new();
-
+const IMPORT_STUB_BASE: u64 = 0x8000000000;
+const IMPORT_STUB_SIZE: u64 = 3;
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -173,29 +177,32 @@ impl<'a> LoadedBinary for LoadedPE<'a> {
     where
         F: FnMut(&LoaderRegion<'b>),
     {
-        for section in self.pe.sections.iter() {
-            
-            // Taking all the imports from the .idata section with goblin parser
-            let mut import_address: Vec<(Address, String)> = self.pe.imports.iter()
-                .map(|import| (self.image_base+import.offset, import.name.to_string()))
-                .collect();
-            // for import in self.pe.imports.iter() {
-            //     import_address.push((self.image_base+import.offset, import.name.to_string()));
-            // }
- 
-            import_address.sort();
-            import_address.dedup();
- 
-            // The same thing as before but in the LoadedPE structure
-            self.import_funcs.set(import_address).ok();
 
+        
+        // Taking all the imports from the .idata section with goblin parser
+        let mut import_address: Vec<(Address, String)> = self
+            .pe
+            .imports
+            .iter()
+            .map(|import| (self.image_base + import.offset, import.name.to_string()))
+            .collect();
+        // for import in self.pe.imports.iter() {
+            //     import_address.push((self.image_base+import.offset, import.name.to_string()));
+        // }
+        import_address.sort();
+        import_address.dedup();
+
+        // The same thing as before but in the LoadedPE structure
+        self.import_funcs.set(import_address.clone()).ok();
+        
+        for section in self.pe.sections.iter() {
             if section.virtual_size() == 0 {
                 continue;
             }
 
             let rstart = section.pointer_to_raw_data() as usize;
             let rsize = section.size_of_raw_data() as usize;
-
+            
             let rend = match rstart.checked_add(rsize) {
                 None => {
                     tracing::debug!("PointerToRawData + SizeOfRawData overflows");
@@ -219,57 +226,111 @@ impl<'a> LoadedBinary for LoadedPE<'a> {
             } else {
                 vstart..vend
             };
-
+            
             if rsize > vsize {
                 tracing::debug!("raw section size > virtual size");
             }
-
+            
             let mut lrgn = LoaderRegion::default();
-
+            
             lrgn.name = section.name().ok().map(Cow::Borrowed);
             lrgn.code =
-                (section.characteristics() & (IMAGE_SCN_CNT_CODE | IMAGE_SCN_MEM_EXECUTE)) != 0;
+            (section.characteristics() & (IMAGE_SCN_CNT_CODE | IMAGE_SCN_MEM_EXECUTE)) != 0;
             lrgn.read_only = (section.characteristics() & IMAGE_SCN_MEM_WRITE) == 0;
-            lrgn.bounds = vbounds;
+            lrgn.bounds = vbounds.clone();
             lrgn.endian = Endian::Little;
-
+            
             // TODO: relocations!
+
             lrgn.bytes = if rsize < vsize {
                 tracing::trace!("raw section size < virtual size; padding with zeros");
                 let mut bytes = Vec::with_capacity(vsize);
-
+                
                 bytes.extend_from_slice(&self.raw[rstart..rend]);
                 bytes.resize(vsize, 0u8);
-
+                
                 lrgn.uninitialised = Some((vstart + rsize)..(vstart + vsize));
-
+                
                 Cow::Owned(bytes)
             } else {
                 let vrend = rstart + rsize.min(vsize);
                 Cow::Borrowed(&self.raw[rstart..vrend])
             };
 
+
+            if self.pe.header.coff_header.machine == COFF_MACHINE_X86_64 {
+                for (index, (iat_address, name)) in import_address.iter().enumerate() {
+                
+                    if !lrgn.bounds.contains(iat_address) {
+                        continue;
+                    }
+                
+                    let offset = usize::from(*iat_address - lrgn.bounds.start);
+                
+                    let fake_address =
+                        IMPORT_STUB_BASE + (index as u64 * IMPORT_STUB_SIZE);
+                
+                    let fake_address_bytes = fake_address.to_le_bytes();
+                
+                    let region_bytes = lrgn.bytes.to_mut();
+                
+                    let Some(end) = offset.checked_add(fake_address_bytes.len()) else {
+                        tracing::warn!(
+                            "IAT offset overflow for import {} at {}",
+                            name,
+                            iat_address
+                        );
+                        continue;
+                    };
+                
+                    if end > region_bytes.len() {
+                        tracing::warn!(
+                            "IAT entry for import {} at {} is outside region {}",
+                            name,
+                            iat_address,
+                            lrgn.name.as_deref().unwrap_or("extern")
+                        );
+                        continue;
+                    }
+                
+                    region_bytes[offset..end]
+                        .copy_from_slice(&fake_address_bytes);
+                
+                    println!(
+                        "Patched IAT: {} at {} -> {:#x}",
+                        name,
+                        iat_address,
+                        fake_address
+                    );
+                }
+            }           
+            
             f(&lrgn)
         }
-        
-        
-        let kernel_base = Address::from_value(0x8000000000 as u64);
+
+
+
+        let kernel_base = Address::from_value(IMPORT_STUB_BASE);
         // Let's just simulate our beloved kernel region
-        
+
         let mut bytes = Vec::new();
-        
-        
-        println!("Numero di funzioni importate, {}", self.import_funcs.get().unwrap().len());
+
+        println!(
+            "Numero di funzioni importate, {}",
+            self.import_funcs.get().unwrap().len()
+        );
         for (address, name) in self.import_funcs.get().unwrap() {
             println!("Nome funzione: {}\nAddress funzione: {}\n", name, address);
             bytes.extend_from_slice((0x31c0_u16).to_be_bytes().as_ref()); // XOR EAX, EAX
             bytes.extend_from_slice((0xc3_u8).to_be_bytes().as_ref()); // RET
         }
-        
-        IMPORT_FUNCS.set(self.import_funcs.get().unwrap().clone()).unwrap(); // exorting the <address - name> vector
-        
+
+        IMPORT_FUNCS
+            .set(self.import_funcs.get().unwrap().clone())
+            .unwrap(); // exorting the <address - name> vector
+
         let mut lrgn = LoaderRegion::default();
-        lrgn.name = Some(Cow::Borrowed("unnamed"));
+        lrgn.name = Some(Cow::Borrowed("extern"));
         lrgn.code = true;
         lrgn.read_only = true;
         lrgn.bounds = kernel_base..(kernel_base + (bytes.len() as u64));
@@ -280,6 +341,9 @@ impl<'a> LoadedBinary for LoadedPE<'a> {
             "Creating fake region for kernel imports of size {}!",
             (lrgn.bounds.end - lrgn.bounds.start)
         );
+
+
+
         f(&lrgn);
     }
 
@@ -308,21 +372,20 @@ impl<'a> LoadedBinary for LoadedPE<'a> {
                 });
             }
         });
-        
+
         if let Some(import_address) = IMPORT_FUNCS.get() {
-            let kernel_base = Address::from_value(0x8000000000 as u64);
+            let kernel_base = Address::from_value(IMPORT_STUB_BASE);
             let mut current_addr = kernel_base;
-            
+
             for (_address, name) in import_address {
                 f(&LoaderFunction {
                     entry: current_addr,
-                     name: Some(Cow::Borrowed(name.as_str())),
+                    name: Some(Cow::Borrowed(name.as_str())),
                     ..Default::default()
                 });
                 current_addr = current_addr + 3usize;
             }
-    }
-
+        }
     }
 
     fn for_each_import<'b, F>(&'b self, mut f: F)

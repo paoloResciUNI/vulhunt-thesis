@@ -173,7 +173,7 @@ impl<'a> PlatformApi<'a> for WindowsBinary {
 
 
         for f in project.functions().values() {
-            println!("DEBUG: we arrived here in bias-vulhunt-engine/src/lua/project/windows.rs, line 173!!");
+            // println!("DEBUG: we arrived here in bias-vulhunt-engine/src/lua/project/windows.rs, line 173!!");
 
             let Some(name) = symbol_mapping
                 .and_then(|syms| syms.function_mapping().get(&f.id()).copied())

@@ -677,6 +677,26 @@ impl<'a> CheckEvidenceBuilder<'a> {
         let source = decompilation.source().to_owned();
         let annodb = decompilation.annotations();
 
+        println!("Decompiled function: {}", fcn.address());
+        println!("Decompiled source length: {}", source.len());
+            
+        for annotation in annotations {
+            if let CheckCodeAnnotation::At { location, message } = annotation {
+                println!(
+                    "Looking for annotation '{}' at {}: {:?}",
+                    message,
+                    location,
+                    annodb.address_to_position().get(location)
+                );
+            }
+        }
+        
+        println!(
+            "Full position/address range: {:?}",
+            annodb.position_to_address().range()
+        );
+
+
         let annotations =
             annotations
                 .iter()

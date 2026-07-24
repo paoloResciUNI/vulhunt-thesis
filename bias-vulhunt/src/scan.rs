@@ -202,10 +202,10 @@ pub async fn run(opts: &ArgMatches) -> Result<(), Box<dyn std::error::Error>> {
             rules,
             bias::platform::windows::analysis::WindowsBinaryAnalysis::new(data)?,
             if let Some(modules) = &modules {
-                bias_vulhunt_engine::analysis::windows::VulHuntWindowsAnalyserConfig::new()
+                bias_vulhunt_engine::analysis::windows::VulHuntWindowsAnalyserConfig::new().with_render(pretty)
                     .with_module_directory(modules)
             } else {
-                bias_vulhunt_engine::analysis::windows::VulHuntWindowsAnalyserConfig::new()
+                bias_vulhunt_engine::analysis::windows::VulHuntWindowsAnalyserConfig::new().with_render(pretty)
             },
         )?,
     );

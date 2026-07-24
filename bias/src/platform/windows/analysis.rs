@@ -131,6 +131,9 @@ impl WindowsBinaryAnalysis {
         let test_analysis = TestAnalysis::new();
         project.analyses_mut().register(test_analysis)?;
 
+        // project.clear_icfg();
+        // project.build_icfg(component, self.configuration());
+
         let block_bounds = CodeBlockBounds::new();
         project.analyses_mut().register(block_bounds)?;
 

@@ -2,10 +2,12 @@ file di windows
 
 - [`/bias-core/src/loader/pe.rs`](/bias-core/src/loader/pe.rs)
   Questo file sembra definire l'oggetto `PELoader`. Questo oggetto sembra occuparsi del caricamento e del parsing del binario PE. (*Questo file era già presente nella repo originale*).
+  
   ```rust
         bytes.extend_from_slice((0x31c0_u16).to_be_bytes().as_ref()); // XOR EAX, EAX
         bytes.extend_from_slice((0xc3_u8).to_be_bytes().as_ref()); // RET  
   ```
+  
   Nel file è presente questa stringa di codice che permette di passare ad un'altra funzione importata (per ogni nuova funzione bisogna cambiare il contenuto di `extend_from_slice(...)`). Bisonga generalizzare il calcolo del address globale tramite adress relativo.
 - [`bias/src/platform/windows/mod.rs`](bias/src/platform/windows/mod.rs)
   Questo file pare raccolga le caratteristiche legate al binario, sembra anche in qualche modo legato al file `.json` di output. (*Questo file era già presente nella repo originale ma è stato spostato e rinominato, da `bias/src/platform/windows.rs`*)
@@ -47,4 +49,27 @@ Le strutture dati che gestiscono questa tabella sono complesse:
 - Partendo da `MPointTable`, è una struttura che associa una hash map a una `MTable`.
 - `MTable` è composto da un `Slab` (una sruttura dati che pare fare da preallocatore della memoria per un singolo tipo di dato).
 
-La "perdita" delle funzioni importate avviane anche nei binari posix. Potrebbe non essere quello il problema dei binari a questo punto il problema potrebbe essere legato alla gestione dei binari windows. 
+La "perdita" delle funzioni importate non avviane anche nei binari posix. Potrebbe non essere quello il problema dei binari a questo punto il problema è legato alla gestione dei binari windows. 
+Nel file [elf.rs](bias-core/src/loader/elf.rs) vine chiamata una funzione implementata all'interno di [mod.rs](bias-core/src/project/mod.rs). Questa funzione restituisce una symtable contenente tutti i nomi di funzione presenti nel binario. Ha senso che non vi sia questa funzione in [pe.rs](bias-core/src/loader/pe.rs). 
+
+### File modificati dall'ultimo commit
+
+- [mod.rs](bias-core/src/project/mod.rs) 
+- [pe.rs](bias-core/src/loader/pe.rs)
+- [table.rs](bias-core/src/kb/table.rs)
+
+Prbabili file da modificare : 
+
+- [functions.rs](bias-core/src/kb/function.rs)
+
+Dopo aver controllato tutti i file sopra elencati, aggiunto opportune stringhe di debug e aver confrontato il funzionamento anche con binari e regole posix (che fosse certo funzionassero), sembra che in questi file non vi siano metodo implementazioni che interagisacno in alun modo con lo scope call. 
+Penso sia utile guardare l'implemntazione dello scpoe call. 
+
+#### Digressione sul file [icfg.rs](bias-core/src/cfg/icfg.rs) e implementazione di relocation in [pe.rs](bias-core/src/loader/pe.rs)
+Sembra che possa tornare utile provare a pulire e rigenerare l'icfg dato che viene generato prima che vengano modificati gli indirizzi di memoria delle funzioni importate. Un'altra idea sembra poter essere quella di implementare la relocation degli indirizzi delle funzioni (strada che sembra poco praticabile).
+
+
+## Scope call
+
+Implementazione in [scope.rs](bias-vulhunt-engine/src/lua/scope.rs).
+

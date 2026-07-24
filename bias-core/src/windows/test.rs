@@ -12,14 +12,17 @@ use fugue::ir::Address;
 // use fugue::sleigh::CodeBlock;
 use serde::{Deserialize, Serialize};
 use ustr::{Ustr, UstrSet};
+use yaxpeax_arm::armv7::ConditionCode::LO;
 
 use crate::analyses::strings::StringsXRefDB;
 use crate::cfg::block::BlockInfo;
+use crate::cfg::icfg;
 use crate::cfg::insn::InsnInfo;
 use crate::cfg::non_returning::{
     NonReturningFunctions, NonReturningPropagator, PropagatedNonReturning,
 };
 use crate::cio::Arg;
+// use crate::eval::Configuration;
 use crate::inject::ExternalFunction;
 use crate::ir::Insn;
 use crate::kb::block::{CodeBlock, CodeBlockId, EmptyCodeBlock};
@@ -31,13 +34,13 @@ use crate::kb::{ustr, uuid, Lazy, Uuid};
 
 use crate::bias_core::loader::pe::IMPORT_FUNCS;  // importing the <address - name> vector
 
-
-use crate::loader::LoadedBinary;
+use crate::loader::{self, LoadedBinary};
 use crate::loader::pe::LoadedPE;
 use crate::prelude::FunctionId;
 use crate::project::analysis::{Analysis, AnalysisError, AnalysisInfo, AnalysisSchedule};
 use crate::region::Region;
-use crate::Project;
+use crate::{PELoader, Project, ProjectConfig};
+
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct TestAnalysis {}
@@ -74,13 +77,14 @@ impl Analysis for TestAnalysis {
             let import_address = Address::from_value(new_address as u64);
             let function = project.functions_mut().get_point_mut(import_address).unwrap();
             function.update_name(func_name);
-            project
-                .memory_mut()
-                .write_value(_address, new_address as u64)
-                .unwrap();
+            // project
+            //     .memory_mut()
+            //     .write_value(_address, new_address as u64)
+            //     .unwrap();
             new_address += 3;
-    }
-    
+        }
+        
+
     Ok(())
 }
 }

@@ -509,6 +509,7 @@ impl Calls {
 
         let context = Lua::new();
 
+
         // context.sandbox(true).map_err(CheckerError::Load)?;
 
         let result = context

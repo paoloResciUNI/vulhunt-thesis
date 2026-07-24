@@ -223,6 +223,7 @@ impl Project {
         };
 
         slf.build_icfg(binary, config.as_ref());
+        println!("{:#?}", slf.icfg);
 
         slf
     }
@@ -243,8 +244,10 @@ impl Project {
                 r.read_only,
                 &*r.bytes,
             );
-
+            
             tracing::trace!("mapping region: {}", region);
+
+            println!("Things from the region of the bynary:\n{}\n{:#?}", r.name.as_ref().unwrap(), r.bounds);
 
             memory.add_region(region);
         });
@@ -375,14 +378,15 @@ impl Project {
     }
 
     pub fn functions(&self) -> &FunctionTable {
-    //    let _ = &self.ftable.for_each(|addr, f| {
-    //     println!(
-    //         "fn address {} id={:?} name function ={:?}",
-    //         addr,
-    //         f.id(),          // FunctionId (Debug)
-    //         f.name(),        // Option<Ustr>
-    //         );
-    //     });
+       let _ = &self.ftable.for_each(|addr, f| {
+        // println!(
+        //     "fn address {} id={:?} name function ={:?}",
+        //     addr,
+        //     f.id(),          // FunctionId (Debug)
+        //     f.name(),        // Option<Ustr>
+        //     );
+        });
+
         &self.ftable
     }
 
@@ -397,7 +401,6 @@ impl Project {
     }
 
     pub fn function_at(&self, address: impl Into<Address>) -> Option<&Function> {
-        // println!("Arrived in mod.rs!!");
         let addr = address.into();
         println!("Here the address: {}", addr);
         self.functions().get_point(addr)
@@ -413,7 +416,7 @@ impl Project {
 
     pub fn symbols(&self) -> &SymbolTable {
         for s in self.symtab.iter() {
-            println!("Sybol from the binary: {}", s.0); // function only with ELF binary (function called in elf.rs)
+            // println!("Sybol from the binary: {}", s.0); // this work only with ELF binaries (this function is called in elf.rs)
         }
         &self.symtab
     }
@@ -582,6 +585,9 @@ impl Project {
     {
         tracing::trace!("building inter-procedural control-flow graph");
         ICFGBuilder::build_with(self, binary, config);
+        println!("{:?}", self.icfg);
+        println!("Here the config: {:?}", config.platform.unwrap());
+
     }
 
     pub fn clear_icfg(&mut self) {
